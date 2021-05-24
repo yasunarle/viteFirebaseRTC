@@ -36,23 +36,31 @@ let remoteStream = null
 // HTML Elements
 const webcamButton = document.getElementById("webcamButton")
 const webcamVideo = document.getElementById("webcamVideo")
+const remoteVideo = document.getElementById("remoteVideo")
 const callButton = document.getElementById("callButton")
 const callInput = document.getElementById("callInput")
 const answerButton = document.getElementById("answerButton")
-const remoteVideo = document.getElementById("remoteVideo")
 const hangupButton = document.getElementById("hangupButton")
 
 // 1. Setup media sources
-
 webcamButton.onclick = async () => {
   localStream = await navigator.mediaDevices.getUserMedia({
     video: true,
     audio: true,
-  })
+  }) // { id: "", active: true, ... }
   remoteStream = new MediaStream()
 
   // Push tracks from local stream to peer connection
   localStream.getTracks().forEach((track) => {
+    // track = {
+    //   enabled: true,
+    //   id: "e6046e83-1198-4d5e-a677-4f0dd4f22d58",
+    //   kind: "audio", // kind: "video"
+    //   label: "MacBook Pro のマイク",
+    //   muted: true,
+    //   readyState: "live"
+    //   ...
+    // }
     pc.addTrack(track, localStream)
   })
 
@@ -71,9 +79,9 @@ webcamButton.onclick = async () => {
   webcamButton.disabled = true
 }
 
-// 2. Create an offer
+// 2. オファー作成
 callButton.onclick = async () => {
-  // Reference Firestore collections for signaling
+  // シグナリングのため Firestore を使用
   const callDoc = firestore.collection("calls").doc()
   const offerCandidates = callDoc.collection("offerCandidates")
   const answerCandidates = callDoc.collection("answerCandidates")
@@ -96,7 +104,7 @@ callButton.onclick = async () => {
 
   await callDoc.set({ offer })
 
-  // Listen for remote answer
+  // Subscribe Remote
   callDoc.onSnapshot((snapshot) => {
     const data = snapshot.data()
     if (!pc.currentRemoteDescription && data?.answer) {
